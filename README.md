@@ -94,6 +94,18 @@ To oversimplify a bit, this tells Babel to:
 2. Transform `.jsx` into `.js` (`@babel/preset-react`)
 3. Transform the remaining `.js` to make it understandable by browsers (`@babel/preset-env`)
 
+We also need to add `./tsconfig.json` so as to insctruct Babel how to handle typescript:
+
+```json
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "jsx": "react"
+    },
+    "include": ["./src"]
+}
+```
+
 We can now launch two useful commands:
 
 * `webpack`: build the whole project into `./dist`
@@ -135,8 +147,151 @@ npm run start
 
 > NB: if you're following via [my github repo][github], we're now at the commit `Step 1 : NPM, Webpack and Babel`.
 
+
+
+## Step 2: React and TypeScript
+
+### The components
+
+React is pretty cool. But you know what's cooler? The Vostok Station in Antartica ([-89°C recorded in July 1983][vostok]). Enough with bad jokes - let's make React cooler by writing it in TypeScript.
+
+First, install React and ReactDOM with their type declarations: React is written is JS, but installing [declaration files][declaration files] allows to type React:
+
+```bash
+npm install --save react react-dom
+npm install --save-dev @types/react @types/react-dom
+```
+
+Now let's build the application. It's going to be an *extremely simple* one consisting of two components:
+
+* `display`: displays '(name) is (age) years old'
+* `edit`: inputs to change the name and the age
+
+For now we'll pass everything as static props, but we'll link the two via a redux store later on.
+
+Let's write the display component in `components/display.tsx`:
+
+```js
+import * as React from 'react';
+
+export default class Display extends React.Component {
+    render() {
+        return (
+            <p>
+                {this.props.name} is {this.props.age} years old.
+            </p>
+        )
+    }
+}
+```
+
+Oh no! We have errors:
+
+```
+[TS2339] property 'name' does not exist on type 'Readonly<{children?: ReactNode}> & ReadOnly<{}>'
+[TS2339] property 'age' does not exist on type 'Readonly<{children?: ReactNode}> & ReadOnly<{}>'
+```
+
+This is because, as of now, `Display.props` is inherited from `React.Component` and its only valid property is `children`. Let's change `React.Component` to `React.Component<{ name: string, age: number}>`. This instructs `Display.props` to have additional `name` and `age` properties. Error gone!
+
+Let's build the edit component having that in mind. We can define additional state properties just like we can define additional props properties. In `./src/components/edit.tsx`:
+
+```js
+import * as React from 'react';
+
+type EditProps = {
+    setName: (name: string) => void,
+    setAge: (age: number) => void
+}
+type EditState = {
+    name: string,
+    age: number
+}
+export default class Edit extends React.Component<EditProps, EditState> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            name: 'James Foobar',
+            age: 25
+        }
+    }
+    render() {
+        return (
+            <div>
+                <p>
+                    <input
+                        value={this.state.name}
+                        onChange={evt => this.setState({name: evt.target.value})}
+                    />
+                    <button onClick={() => this.props.setName(this.state.name)}>
+                        Set new name
+                    </button>
+                </p>
+                <p>
+                    <input
+                        value={this.state.age}
+                        onChange={evt => this.setState({age: +evt.target.value})}
+                    />
+                    <button onClick={() => this.props.setAge(this.state.age)}>
+                        Set new age
+                    </button>
+                </p>
+            </div>
+        )
+    }
+}
+```
+
+Finally, we wrap them up in an app component. Note that components written as functions can also be typed as show below. In `./src/components/app.tsx`:
+
+```js
+import * as React from 'react';
+
+import Display from './display';
+import Edit from './edit';
+
+export default (props: {}) => (
+    <div>
+        <Display
+            name={'John Doe'}
+            age={20}
+        />
+        <Edit
+            setName={name => alert(`setName(${name}): not coded yet`)}
+            setAge={age => alert(`setAge(${age}): not coded yet`)}
+        />
+    </div>
+)
+```
+
+### Bootstrapping the app
+
+This is a basic operation when creating a React app, but it also gets abstracted by `react-create-app`.
+
+Change `./src/index.html` so that the body looks like: `<body><div id="react-root"></div></body>`. This will allow React to bootstrap from the `#react-root` element.
+
+Change `./src/index.tsx` to the following:
+
+```js
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
+
+import App from './components/app';
+
+ReactDOM.render(
+    (<App/>),
+    document.querySelector('#react-root')
+);
+```
+
+**Annnnnd we're good to go! Launch `npm run start` and play around with the app you created. We still don't have a redux store to link the components together, but the components should work by themselves now.**
+
+
+
 [create-react-app]: https://facebook.github.io/create-react-app/
 [angular cli]: https://cli.angular.io/
 [github]: https://github.com/ninofiliu/react-redux-webpack-typescript
 [webpack]: https://webpack.js.org
 [babel]: https://babeljs.io/
+[vostok]: https://en.wikipedia.org/wiki/Lowest_temperature_recorded_on_Earth
+[declaration files]: https://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html
