@@ -286,6 +286,117 @@ ReactDOM.render(
 
 **Annnnnd we're good to go! Launch `npm run start` and play around with the app you created. We still don't have a redux store to link the components together, but the components should work by themselves now.**
 
+> NB: if you're following via [my github repo][github], we're now at the commit `Step 2: React and TypeScript`.
+
+
+
+## Step 3 : Redux and TypeScript
+
+```bash
+npm install --save redux react-redux
+npm install --save @types/react-redux
+```
+
+Honestly, it gets quite trickier from here and it won't be as simple as adding typings at the end of abstract classes like in step 2. But it's the price to pay for a beautiful scalable typed redux store. Let's create these files:
+
+```
+./src/store/index.ts
+./src/store/types.ts
+./src/store/age.reducer.ts
+./src/store/name.reducer.ts
+```
+
+*Putting the age and the name would have been a great option in production, but I'm creating two reducers so as to demonstrate how to combine reducers because the typing considerations on this point are not as easy as they seem.*
+
+Note that this is not the only way to type a store. There is no official recommendation on how to proceed and it's basically up to each developer to find the best way. The way I'm going to present here is based on research I've done, personal work, and also personal taste - I love to [KISS][kiss].
+
+Firstly, let's populate `./src/store/types.ts` with the shared types of objects we're going to use in other parts of the store:
+
+```ts
+type Action<TType, TPayload> = {
+    type: TType,
+    payload: TPayload
+};
+type Reducer<TState, TAction> = (state: TState, action: TAction) => TState;
+
+export { Action, Reducer }
+```
+
+Now, let's build the reducers, starting with the age reducer:
+
+```ts
+import { Action, Reducer } from './types';
+
+// internal reducer state
+type State = { value: number }
+
+// all the possible action cases: only one here, but there can be more
+enum ActionCases { SET_VALUE = 'age/SET_VALUE' }
+
+// initial reducer state
+const stateInit: State = { value: 20 }
+
+// action creator that can be dispatched
+type SetValueAction = Action<ActionCases.SET_VALUE, {value: number}>;
+const setValue
+    : (value: number) => SetValueAction
+    = (value) => ({
+        type: ActionCases.SET_VALUE,
+        payload: { value }
+    });
+
+// all the possible actions: only one here, but there can be more:
+// type Actions = ActionType1 | ActionType2 | ...
+type Actions = SetValueAction;
+
+const reducer
+    : Reducer<State, Actions>
+    = (state=stateInit, action) => {
+        switch(action.type) {
+            case ActionCases.SET_VALUE:
+                return {value: action.payload.value};
+            default:
+                return state;
+        }
+    };
+
+export { reducer, setValue, State, Actions }
+```
+
+The name reducer will be almost the same - simply replace the `number` type by `string`, the initial state value by `John Doe`, and the `age/` by `name/`.
+
+Now, wrap all the reducers into a single store (in `./src/store/index.ts`):
+
+```ts
+import { createStore, combineReducers } from 'redux';
+
+import * as age from './age.reducer';
+import * as name from './name.reducer';
+
+// store state
+type State = {
+    age: age.State,
+    name: name.State
+}
+
+// all the possible actions that can be dispatched
+type Actions = age.Actions | name.Actions;
+
+// redux takes charge of the typing from now on (see below)
+export default createStore<State, Actions, {}, {}>(
+    combineReducers<State>({
+        age: age.reducer,
+        name: name.reducer
+    })
+)
+```
+
+**Great, you created a typed store! There is not much you can see for now though.**
+
+> NB: if you're following via [my github repo][github], we're now at the commit `Step 3 : Redux and TypeScript`.
+
+
+
 
 
 [create-react-app]: https://facebook.github.io/create-react-app/
@@ -295,3 +406,4 @@ ReactDOM.render(
 [babel]: https://babeljs.io/
 [vostok]: https://en.wikipedia.org/wiki/Lowest_temperature_recorded_on_Earth
 [declaration files]: https://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html
+[kiss]: https://www.interaction-design.org/literature/article/kiss-keep-it-simple-stupid-a-design-principle
