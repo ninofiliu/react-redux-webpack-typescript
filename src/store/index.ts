@@ -13,9 +13,11 @@ type State = {
 type Actions = age.Actions | name.Actions;
 
 // redux takes charge of the typing from now on (see below)
-export default createStore<State, Actions, {}, {}>(
+const store = createStore<State, Actions, {}, {}>(
     combineReducers<State>({
         age: age.reducer,
         name: name.reducer
     })
-)
+);
+
+export { State, Actions, store }

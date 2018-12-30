@@ -1,4 +1,9 @@
 import * as React from 'react';
+import { connect } from 'react-redux';
+
+import { store } from '../store';
+import { setValue as setAge } from '../store/age.reducer';
+import { setValue as setName } from '../store/name.reducer';
 
 type EditProps = {
     setName: (name: string) => void,
@@ -8,7 +13,7 @@ type EditState = {
     name: string,
     age: number
 }
-export default class Edit extends React.Component<EditProps, EditState> {
+class Edit extends React.Component<EditProps, EditState> {
     constructor(props) {
         super(props);
         this.state = {
@@ -41,3 +46,11 @@ export default class Edit extends React.Component<EditProps, EditState> {
         )
     }
 }
+
+const mapStateToProps = null;
+const mapDispatchToProps = (dispatch: typeof store.dispatch) => ({
+    setName: (name: string) => dispatch(setName(name)),
+    setAge: (age: number) => dispatch(setAge(age))
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(Edit);

@@ -383,12 +383,14 @@ type State = {
 type Actions = age.Actions | name.Actions;
 
 // redux takes charge of the typing from now on (see below)
-export default createStore<State, Actions, {}, {}>(
+const store = createStore<State, Actions, {}, {}>(
     combineReducers<State>({
         age: age.reducer,
         name: name.reducer
     })
-)
+);
+
+export { State, Actions, store }
 ```
 
 **Great, you created a typed store! There is not much you can see for now though.**
@@ -397,7 +399,90 @@ export default createStore<State, Actions, {}, {}>(
 
 
 
+# Step 4 (grand finale) : Connecting React to the store
 
+A wonderful store is indeed useless if you're not using it. Let's use the `react-redux` to connect components with the store. For example, the Display components is rewritten as such:
+
+```js
+import * as React from 'react';
+import { connect } from 'react-redux';
+
+import { State } from '../store';
+
+class Display extends React.Component<{ name: string, age: number}> {
+    render() {
+        return (
+            <p>
+                {this.props.name} is {this.props.age} years old.
+            </p>
+        )
+    }
+}
+
+const mapStateToProps = (state: State) => ({
+    age: state.age.value,
+    name: state.name.value
+});
+
+export default connect(mapStateToProps)(Display);
+```
+
+The same thing is done with the Edit component:
+
+```js
+// add imports
+import { connect } from 'react-redux';
+import { store } from '../store';
+import { setValue as setAge } from '../store/age.reducer';
+import { setValue as setName } from '../store/name.reducer';
+
+// ...
+
+// connect the component
+const mapStateToProps = null;
+const mapDispatchToProps = (dispatch: typeof store.dispatch) => ({
+    setName: (name: string) => dispatch(setName(name)),
+    setAge: (age: number) => dispatch(setAge(age))
+});
+export default connect(mapStateToProps, mapDispatchToProps)(Edit);
+```
+
+The App component is rewritten so that inputs are coming from the store and not from the App component:
+
+```js
+export default () => (
+    <div>
+        <Display/>
+        <Edit/>
+    </div>
+)
+```
+
+Finally, the store is provided to the app in `./src/index.tsx`:
+
+```js
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
+import { Provider } from 'react-redux'; // add this
+
+import App from './components/app';
+import { store } from './store'; // add this
+
+ReactDOM.render(
+    // (<App/>) remove this
+    (<Provider store={store}><App/></Provider>), // add this
+    document.querySelector('#react-root')
+);
+```
+
+**You're done.** You should observe this behavior when running `npm run start`:
+
+* Typing into the input fields change the input value → the state of the edit component works
+* Clicking on `Set new name` or `Set new age` changes the value of the sentence in the Display component → your store is connected to both components
+
+**This is the end. Bravo, you did it! You built a beautiful front-end from scratch. You're now a senior web developer. Go get a $60K/year job!**
+
+[]
 
 [create-react-app]: https://facebook.github.io/create-react-app/
 [angular cli]: https://cli.angular.io/

@@ -1,6 +1,9 @@
 import * as React from 'react';
+import { connect } from 'react-redux';
 
-export default class Display extends React.Component<{ name: string, age: number}> {
+import { State } from '../store';
+
+class Display extends React.Component<{ name: string, age: number}> {
     render() {
         return (
             <p>
@@ -9,3 +12,10 @@ export default class Display extends React.Component<{ name: string, age: number
         )
     }
 }
+
+const mapStateToProps = (state: State) => ({
+    age: state.age.value,
+    name: state.name.value
+});
+
+export default connect(mapStateToProps)(Display);
